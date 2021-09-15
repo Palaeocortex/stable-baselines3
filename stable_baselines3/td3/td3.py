@@ -12,6 +12,8 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedul
 from stable_baselines3.common.utils import polyak_update
 from stable_baselines3.td3.policies import TD3Policy
 
+from stable_baselines3.common.pretraining import Pretraining
+
 
 class TD3(OffPolicyAlgorithm):
     """
@@ -67,12 +69,15 @@ class TD3(OffPolicyAlgorithm):
         learning_rate: Union[float, Schedule] = 1e-3,
         buffer_size: int = 1000000,  # 1e6
         learning_starts: int = 100,
+        pretraining_folder: str = '',
+        pretraining_episodes: int = 0,
         batch_size: int = 100,
         tau: float = 0.005,
         gamma: float = 0.99,
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,
         action_noise: Optional[ActionNoise] = None,
+        pretrain: Optional[Pretraining] = None,
         replay_buffer_class: Optional[ReplayBuffer] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
@@ -95,12 +100,15 @@ class TD3(OffPolicyAlgorithm):
             learning_rate,
             buffer_size,
             learning_starts,
+            pretraining_folder,
+            pretraining_episodes,
             batch_size,
             tau,
             gamma,
             train_freq,
             gradient_steps,
             action_noise=action_noise,
+            pretrain=pretrain,
             replay_buffer_class=replay_buffer_class,
             replay_buffer_kwargs=replay_buffer_kwargs,
             policy_kwargs=policy_kwargs,

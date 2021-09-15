@@ -60,6 +60,19 @@ class VecEnv(ABC):
         self.observation_space = observation_space
         self.action_space = action_space
 
+    # def get_reward(self, obs, action_usage) -> VecEnvStepReturn:
+    #     """
+    #     during pretraining:
+    #     Return the reward for an observation with null action
+    #     during regular training:
+    #     calculate rewqards based on observation and action
+    #     :param obs: the observation
+    #     :param actions: the action
+    #     :return: observation, reward, done, information
+    #     """
+    #     raise NotImplementedError
+
+
     @abstractmethod
     def reset(self) -> VecEnvObs:
         """

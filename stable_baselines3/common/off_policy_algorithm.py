@@ -19,6 +19,7 @@ from stable_baselines3.common.utils import safe_mean, should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
+from stable_baselines3.common.pretraining import Pretraining
 
 class OffPolicyAlgorithm(BaseAlgorithm):
     """
@@ -81,12 +82,15 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         learning_rate: Union[float, Schedule],
         buffer_size: int = 1000000,  # 1e6
         learning_starts: int = 100,
+        pretraining_folder: str = '',
+        pretraining_episodes: int = 0,
         batch_size: int = 256,
         tau: float = 0.005,
         gamma: float = 0.99,
         train_freq: Union[int, Tuple[int, str]] = (1, "step"),
         gradient_steps: int = 1,
         action_noise: Optional[ActionNoise] = None,
+        pretrain: Optional[Pretraining] = None,
         replay_buffer_class: Optional[ReplayBuffer] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
@@ -126,6 +130,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self.learning_starts = learning_starts
+        self.pretraining_folder = pretraining_folder
+        self.pretraining_episodes = pretraining_episodes
+        self.pretrain = pretrain
         self.tau = tau
         self.gamma = gamma
         self.gradient_steps = gradient_steps
@@ -402,6 +409,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
+        elif self._episode_num < self.pretrain.nepisodes:
+            # during pretraining, the actions are always 0 (for now)
+            unscaled_action = np.zeros(self.env.action_space.shape)
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -567,8 +577,16 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
-                # Rescale and perform action
-                new_obs, reward, done, infos = env.step(action)
+                if num_collected_episodes < self.pretrain.nepisodes:
+                    # do pretraining
+                    new_obs, done, all_done = self.pretrain.get_datapoint()
+                    reward = env.get_reward(new_obs, action)
+                    infos = {}
+
+                else:
+                    # do regular training
+                    # Rescale and perform action
+                    new_obs, reward, done, infos = env.step(action)
 
                 self.num_timesteps += 1
                 episode_timesteps += 1

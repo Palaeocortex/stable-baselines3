@@ -9,6 +9,8 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedul
 from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.td3.td3 import TD3
 
+from stable_baselines3.common.pretraining import Pretraining
+
 
 class DDPG(TD3):
     """
@@ -27,6 +29,8 @@ class DDPG(TD3):
         it can be a function of the current progress remaining (from 1 to 0)
     :param buffer_size: size of the replay buffer
     :param learning_starts: how many steps of the model to collect transitions for before learning starts
+    :param pretraining_folder: where to find the folder with pretraining data
+    :param pretraining_episodes: number of previously saved episodes to use for pretraining
     :param batch_size: Minibatch size for each gradient update
     :param tau: the soft update coefficient ("Polyak update", between 0 and 1)
     :param gamma: the discount factor
@@ -60,12 +64,15 @@ class DDPG(TD3):
         learning_rate: Union[float, Schedule] = 1e-3,
         buffer_size: int = 1000000,  # 1e6
         learning_starts: int = 100,
+        pretraining_folder: str = '',
+        pretraining_episodes: int = 0,
         batch_size: int = 100,
         tau: float = 0.005,
         gamma: float = 0.99,
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,
         action_noise: Optional[ActionNoise] = None,
+        pretrain: Optional[Pretraining] = None,
         replay_buffer_class: Optional[ReplayBuffer] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
@@ -84,12 +91,15 @@ class DDPG(TD3):
             learning_rate=learning_rate,
             buffer_size=buffer_size,
             learning_starts=learning_starts,
+            pretraining_folder=pretraining_folder,
+            pretraining_episodes=pretraining_episodes,
             batch_size=batch_size,
             tau=tau,
             gamma=gamma,
             train_freq=train_freq,
             gradient_steps=gradient_steps,
             action_noise=action_noise,
+            pretrain=pretrain,
             replay_buffer_class=replay_buffer_class,
             replay_buffer_kwargs=replay_buffer_kwargs,
             policy_kwargs=policy_kwargs,
