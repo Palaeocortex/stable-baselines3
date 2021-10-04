@@ -405,11 +405,14 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             and scaled action that will be stored in the replay buffer.
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
+        flag_pretraining = False
+        if (self.pretrain is not None) and (self._episode_num < self.pretrain.nepisodes) :
+            flag_pretraining = True
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
-        elif self._episode_num < self.pretrain.nepisodes:
+        elif flag_pretraining:
             # during pretraining, the actions are always 0 (for now)
             unscaled_action = np.zeros(self.env.action_space.shape)
         else:
@@ -422,9 +425,10 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if isinstance(self.action_space, gym.spaces.Box):
             scaled_action = self.policy.scale_action(unscaled_action)
 
-            # Add noise to the action (improve exploration)
-            if action_noise is not None:
-                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+            if not flag_pretraining:
+                # Add noise to the action (improve exploration)
+                if action_noise is not None:
+                    scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer
             buffer_action = scaled_action
@@ -577,12 +581,16 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
-                if num_collected_episodes < self.pretrain.nepisodes:
-                    # do pretraining
-                    new_obs, done, all_done = self.pretrain.get_datapoint()
-                    reward = env.get_reward(new_obs, action)
-                    infos = {}
+                flag_pretraining_currently = False
+                if self.pretrain is not None:
+                    if self._episode_num < self.pretrain.nepisodes: # do pretraining
+                        flag_pretraining_currently = True
 
+                if flag_pretraining_currently:
+                    # get data from file
+                    # print('off policy algo.py 586',self._episode_num, self.pretrain.nepisodes, self.num_timesteps)
+                    reward, new_obs, done, all_done = self.pretrain.get_observation_and_reward()
+                    infos = [{}]
                 else:
                     # do regular training
                     # Rescale and perform action
