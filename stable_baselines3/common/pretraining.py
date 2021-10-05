@@ -45,6 +45,7 @@ class Pretraining():
         # read sampling rate from metadata file
         # calculate snip len
         # get next file or folder name
+        print(' *** pretraining *** reading next folder')
         self.current_folder = next(self.folders, None)
         if self.current_folder is None:
             return False
@@ -82,11 +83,12 @@ class Pretraining():
         if self.current_snip is None:
             # the current episode is done
             ep_done = True
+            print(' *** pretraining episode done ***')
             if not self._read_next_folder():
                 # all pretraining episodes are done
                 all_done = True
-                print(' *** training data done *** ')
-        print(' --- get_data_snip(), d shape, start, stop, current state', data.shape, self.current_state)
+                print(' *** pretraining data done *** ')
+        # print(' --- get_data_snip(), d shape, start, stop, current state', data.shape, self.current_state)
         return data, ep_done, all_done
 
     def _load_single_snip_and_reward(self):
@@ -105,7 +107,7 @@ class Pretraining():
         reward, done, all_done = self._load_single_snip_and_reward()
         # reset episode if done is true
 
-        return reward, np.array(self.current_state), done, all_done
+        return reward, np.array([self.current_state]), done, all_done
 
 
 

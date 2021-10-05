@@ -405,16 +405,13 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             and scaled action that will be stored in the replay buffer.
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
-        flag_pretraining = False
-        if (self.pretrain is not None) and (self._episode_num < self.pretrain.nepisodes) :
-            flag_pretraining = True
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
-        elif flag_pretraining:
+        elif self._check_if_currently_pretraining():
             # during pretraining, the actions are always 0 (for now)
-            unscaled_action = np.zeros(self.env.action_space.shape)
+            unscaled_action = np.array([np.zeros(self.env.action_space.shape)])
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -425,7 +422,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if isinstance(self.action_space, gym.spaces.Box):
             scaled_action = self.policy.scale_action(unscaled_action)
 
-            if not flag_pretraining:
+            if not self._check_if_currently_pretraining():
                 # Add noise to the action (improve exploration)
                 if action_noise is not None:
                     scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
@@ -523,6 +520,15 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if self._vec_normalize_env is not None:
             self._last_original_obs = new_obs_
 
+    # are we in a pretraining step ATM?
+    def _check_if_currently_pretraining(self):
+        flag = False
+        if self.pretrain is not None:
+            if self._episode_num < self.pretrain.nepisodes: # do pretraining
+                flag = True
+        return flag
+
+
     def collect_rollouts(
         self,
         env: VecEnv,
@@ -581,12 +587,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
-                flag_pretraining_currently = False
-                if self.pretrain is not None:
-                    if self._episode_num < self.pretrain.nepisodes: # do pretraining
-                        flag_pretraining_currently = True
-
-                if flag_pretraining_currently:
+                if self._check_if_currently_pretraining():
                     # get data from file
                     # print('off policy algo.py 586',self._episode_num, self.pretrain.nepisodes, self.num_timesteps)
                     reward, new_obs, done, all_done = self.pretrain.get_observation_and_reward()
