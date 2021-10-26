@@ -38,6 +38,7 @@ class Pretraining():
         rn.shuffle(folders)
         folders = folders[0:self.nepisodes]
         self.folders = iter(folders)
+        self.flag_currently_pretraining = True
         self._read_next_folder()
 
     def _read_next_folder(self):
@@ -45,7 +46,7 @@ class Pretraining():
         # read sampling rate from metadata file
         # calculate snip len
         # get next file or folder name
-        print(' *** pretraining *** reading next folder')
+        print(' --- pretraining, reading next folder')
         self.current_folder = next(self.folders, None)
         if self.current_folder is None:
             return False
@@ -73,6 +74,9 @@ class Pretraining():
 
         return True
 
+    def is_currently_pretraining(self):
+        return self.flag_currently_pretraining
+
     def get_data_snip(self):
         # return a snip = number of data points which form a window
         ep_done = False
@@ -87,6 +91,7 @@ class Pretraining():
             if not self._read_next_folder():
                 # all pretraining episodes are done
                 all_done = True
+                self.flag_currently_pretraining = False
                 print(' *** pretraining data done *** ')
         # print(' --- get_data_snip(), d shape, start, stop, current state', data.shape, self.current_state)
         return data, ep_done, all_done
@@ -96,7 +101,7 @@ class Pretraining():
         snip, done, all_done = self.get_data_snip()
         # call the gym's function to amke the observation
         reward, b,c, center_asyn,e,f = self.gym_make_observation(snip, 0)
-        self.current_state.append([center_asyn])
+        self.current_state.append(center_asyn)
         return reward, done, all_done
 
     def get_observation_and_reward(self):

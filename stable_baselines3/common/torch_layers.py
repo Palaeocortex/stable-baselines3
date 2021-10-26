@@ -98,6 +98,7 @@ def create_mlp(
     output_dim: int,
     net_arch: List[int],
     activation_fn: Type[nn.Module] = nn.ReLU,
+    scale_weights = False,
     squash_output: bool = False,
 ) -> List[nn.Module]:
     """
@@ -123,12 +124,20 @@ def create_mlp(
 
     for idx in range(len(net_arch) - 1):
         modules.append(nn.Linear(net_arch[idx], net_arch[idx + 1]))
+        # if scale_weights:
+        #     # nn.init.kaiming_uniform_(modules[-1].weight.data, nonlinearity='relu')
+        #     nn.init.kaiming_normal_(modules[-1].weight.data, nonlinearity='relu')
+        #     nn.init.constant_(modules[-1].bias.data, 0.1)
         modules.append(activation_fn())
 
     if output_dim > 0:
         last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
         modules.append(nn.Linear(last_layer_dim, output_dim))
     if squash_output:
+        # initialize weights and biases for last layer
+        # nn.init.xavier_uniform_(modules[-1].weight.data)
+        # nn.init.constant_(modules[-1].bias.data, 0.1)
+        # print(' *** *** *** initialized weights for squash layer')
         modules.append(nn.Tanh())
     return modules
 
