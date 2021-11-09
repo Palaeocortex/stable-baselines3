@@ -409,7 +409,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
-        elif self._check_if_currently_pretraining():
+        elif self.check_if_currently_pretraining():
             # during pretraining, the actions are always 0 (for now)
             unscaled_action = np.array([np.zeros(self.env.action_space.shape)])
         else:
@@ -422,7 +422,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         if isinstance(self.action_space, gym.spaces.Box):
             scaled_action = self.policy.scale_action(unscaled_action)
 
-            if not self._check_if_currently_pretraining():
+            if not self.check_if_currently_pretraining():
                 # Add noise to the action (improve exploration)
                 if action_noise is not None:
                     scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
@@ -521,7 +521,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             self._last_original_obs = new_obs_
 
     # are we in a pretraining step ATM?
-    def _check_if_currently_pretraining(self):
+    def check_if_currently_pretraining(self):
         flag = False
         if self.pretrain is not None:
             if self._episode_num < self.pretrain.nepisodes: # do pretraining
@@ -587,7 +587,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
-                if self._check_if_currently_pretraining():
+                if self.check_if_currently_pretraining():
                     # get data from file
                     # print('off policy algo.py 586',self._episode_num, self.pretrain.nepisodes, self.num_timesteps)
                     reward, new_obs, done, all_done = self.pretrain.get_observation_and_reward()

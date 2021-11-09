@@ -177,19 +177,21 @@ class TD3(OffPolicyAlgorithm):
             critic_loss.backward()
             self.critic.optimizer.step()
 
+            # don't update actor during pretraining because
+            # pretraining actions can be very unbalanced, for example only actions=0
+            pretraining_step = self.check_if_currently_pretraining()
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0:
-                # Compute actor loss
-                actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
-                actor_losses.append(actor_loss.item())
-
-                # Optimize the actor
-                self.actor.optimizer.zero_grad()
-                actor_loss.backward()
-                self.actor.optimizer.step()
-
+                if not pretraining_step:
+                    # Compute actor loss
+                    actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
+                    actor_losses.append(actor_loss.item())
+                    # Optimize the actor
+                    self.actor.optimizer.zero_grad()
+                    actor_loss.backward()
+                    self.actor.optimizer.step()
+                    polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
                 polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         if len(actor_losses) > 0:
