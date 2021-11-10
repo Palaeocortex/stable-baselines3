@@ -96,7 +96,14 @@ def data_to_json(data: Dict[str, Any]) -> str:
             # Also store type of the class for consumption
             # from other languages/humans, so we have an
             # idea what was being stored.
-            base64_encoded = base64.b64encode(cloudpickle.dumps(data_item)).decode()
+            try:
+                base64_encoded = base64.b64encode(cloudpickle.dumps(data_item)).decode()
+            except Exception as e:
+                # it can't handle function calls to PyJulia
+                # just don't save those
+                # TypeError: cannot pickle 'PyCall.jlwrap' object
+                print('save_util.py --- data_to_json --- Could not save an element of type', type(data_item))
+                pass
 
             # Use ":" to make sure we do
             # not override these keys
